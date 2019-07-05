@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "TrademarkHistoryAnalysis": {
+      "commandName": "Project",
+      "commandLineArgs": "\"K:\\USPTO Annual Data\" \"K:\\USPTO Annual Data\\sqlite.db\""
+    }
+  }
+}
