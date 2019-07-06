@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using TrademarkHistoryAnalysis.Models;
-using System.Xml.Linq;
-using System.Linq;
+using System.Globalization;
 using System.IO;
 using System.IO.Compression;
-using System.Globalization;
+using System.Linq;
+using System.Xml.Linq;
+using TrademarkHistoryAnalysis.Models;
 
 namespace TrademarkHistoryAnalysis.Services
 {
@@ -19,7 +19,7 @@ namespace TrademarkHistoryAnalysis.Services
         private static bool IsOnPrincipalRegister(XElement element)
         {
             string supplemental = (string)element.Element("supplemental-register-in");
-            return supplemental == "F"; //F is code for false
+            return supplemental == "F"; // F is code for false
         }
 
         /// <summary>
@@ -43,20 +43,30 @@ namespace TrademarkHistoryAnalysis.Services
         }
 
         /// <summary>
-        /// Gets a list of class IDs from an XML "classfifications" element
+        /// Compiles a list of classifications which includes international codes and identifications of goods and services
         /// </summary>
-        /// <param name="classifications">An IEnumerable XElement containing "classification" child elements</param>
-        /// <returns>A list of class IDs</returns>
-        private static List<int> GetClasses(IEnumerable<XElement> classifications)
+        /// <param name="classifications">XML elements the child elemnts of which are classification nodes </param>
+        /// <param name="GoodsAndServices">A list of strings that match the classification nodes</param>
+        /// <returns>A list of Classifications</returns>
+        private static List<Classification> GetClasses(IEnumerable<XElement> classifications, List<string> GoodsAndServices)
         {
-            List<int> result = new List<int>();
+            List<Classification> result = new List<Classification>();
+            int index = 0;
 
             foreach (XElement c in classifications)
             {
-                if (int.TryParse((string)c.Element("primary-code"), out int code))
+                if (c.Element("international-code") != null)
                 {
-                    result.Add(code);
+                    if (int.TryParse((string)c.Element("international-code"), out int code))
+                    {
+                        result.Add(new Classification(code, GoodsAndServices.ElementAtOrDefault(index)));
+                    }
                 }
+                else
+                {
+                    result.Add(new Classification(0, GoodsAndServices.ElementAtOrDefault(index)));
+                }
+                index++;
             }
 
             return result;
@@ -67,16 +77,19 @@ namespace TrademarkHistoryAnalysis.Services
         /// </summary>
         /// <param name="caseFileStatements">An IEnumerable XElement containing "case-file-statements" child elements</param>
         /// <returns></returns>
-        private static string GetGoodsAndServices(IEnumerable<XElement> caseFileStatements)
+        private static List<string> GetGoodsAndServices(IEnumerable<XElement> caseFileStatements)
         {
             List<string> texts = new List<string>();
 
             foreach (XElement s in caseFileStatements)
             {
-                if (((string)s.Element("type-code")).StartsWith("GS")) texts.Add((string)s.Element("text")); //GS is code for Goods and Services
+                if (((string)s.Element("type-code")).StartsWith("GS"))
+                {
+                    texts.Add((string)s.Element("text")); //GS is code for Goods and Services
+                }
             }
 
-            return String.Join(';', texts);
+            return texts;
         }
 
         /// <summary>
@@ -86,7 +99,7 @@ namespace TrademarkHistoryAnalysis.Services
         /// <returns>A list of CaseFile objects</returns>
         public static List<CaseFile> ParseXML(Stream stream)
         {
-            
+
             XElement xElement = XElement.Load(stream);
 
             IEnumerable<XElement> searchResults = from case_file in xElement.Descendants("case-file")
@@ -99,7 +112,7 @@ namespace TrademarkHistoryAnalysis.Services
                                                   select case_file;
 
             List<CaseFile> results = new List<CaseFile>();
-            
+
             foreach (XElement e in searchResults)
             {
                 XElement header = e.Element("case-file-header");
@@ -131,8 +144,8 @@ namespace TrademarkHistoryAnalysis.Services
                             (string)header.Element("attorney-name"),
                             (int)header.Element("status-code"),
                             (string)header.Element("mark-identification"),
-                            GetGoodsAndServices(e.Elements("case-file-statements").Elements("case-file-statement")),
-                            GetClasses(e.Elements("classifications").Elements("classification"))
+                                 GetClasses(e.Elements("classifications").Elements("classification"),
+                                            GetGoodsAndServices(e.Elements("case-file-statements").Elements("case-file-statement")))
                             ));
             }
 

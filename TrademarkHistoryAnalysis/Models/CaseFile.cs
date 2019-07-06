@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace TrademarkHistoryAnalysis.Models
 {
@@ -17,12 +16,12 @@ namespace TrademarkHistoryAnalysis.Models
         public string Attorney { get; private set; }
         public int StatusCode { get; private set; }
         public string MarkLiteralElements { get; private set; }
-        public string GoodsAndServices { get; private set; }
-        public List<int> Classes { get; private set; }
+
+        public List<Classification> Classes { get; private set; }
 
         public CaseFile(DateTime filingDate, int serialNumber, DateTime? registrationDate, int? registrationNumber, string owner,
-            int ownerTypeId, string state, string country, string attorney, int statusCode, string markLiteralElements, string goodsAndServices,
-            List<int> classes)
+            int ownerTypeId, string state, string country, string attorney, int statusCode, string markLiteralElements,
+            List<Classification> classes)
         {
             FilingDate = filingDate;
             SerialNumber = serialNumber;
@@ -35,7 +34,6 @@ namespace TrademarkHistoryAnalysis.Models
             Attorney = attorney;
             StatusCode = statusCode;
             MarkLiteralElements = markLiteralElements;
-            GoodsAndServices = goodsAndServices;
             Classes = classes;
         }
     }
