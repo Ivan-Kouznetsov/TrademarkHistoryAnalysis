@@ -1,9 +1,9 @@
 # Why?
 The USPTO publishes historical trademark data on their website: [https://developer.uspto.gov/product/trademark-annual-xml-applications#product-files](https://developer.uspto.gov/product/trademark-annual-xml-applications#product-files)
-This data is made available as XML, with numerous fields some of which are inapplicable or of low importance such as the date the file was compiled. If you want to analyse this data you will first need to extract salient information and to arrange it in a matter conducive to analysis. That is what this application does.
+This data is made available as XML, with numerous fields some of which are inapplicable or of low importance such as the date the file was compiled. If you want to analyze this data you will first need to extract salient information and to arrange it in a matter conducive to analysis. That is what this application does.
 
 # What?
-This application takes in a directory of one or more zipped XML files containing annual trademark data from the USPTO and converts the data contained therein into a SQLite database which you can then query using SQL by using the SQLite command line tool or 3rd party GUI tools.
+This application takes in a directory of one or more zipped XML files containing annual trademark data from the USPTO and converts the data contained therein into an SQLite database which you can then query using SQL by using the SQLite command line tool or 3rd party GUI tools.
 
 The resulting tables have the following fields:
 
@@ -21,7 +21,7 @@ CaseFiles Table:
  - Attorney
  - StatusCode
  - MarkLiteralElements
- 	
+     
 CaseFileClass Table:
 
  - CaseFileClassId
@@ -30,10 +30,10 @@ CaseFileClass Table:
  - GoodsAndServices
 # How?
 
-Usage: TrademarkHistoryAnalysis [filename or directory] [name of sqlite db that porgram will create] 
+Usage: TrademarkHistoryAnalysis [filename or directory] [name of SQLite DB that program will create] 
 
 ## Technical Requirements:
-Works best on a multicore computer, requires approximately 5 GB of temporary storage.
+Works best on a multicore computer and requires approximately 5 GB of temporary storage.
 
 # Original XML Data
 The original data looks like this. It gets converted into tables as described above.
