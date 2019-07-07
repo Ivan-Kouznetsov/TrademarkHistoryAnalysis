@@ -5,6 +5,8 @@ using System.Linq;
 using TrademarkHistoryAnalysis.DAO;
 using TrademarkHistoryAnalysis.Models;
 using TrademarkHistoryAnalysis.Services;
+using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 namespace TrademarkHistoryAnalysis
 {
@@ -18,7 +20,7 @@ namespace TrademarkHistoryAnalysis
     class Program
     {
         static void Main(string[] args)
-        {
+        {         
             Console.WriteLine(Properties.Resources.Copyright);
 
             if (args.Length == 2)
@@ -28,9 +30,7 @@ namespace TrademarkHistoryAnalysis
 
                 if (File.Exists(databaseFilename))
                 {
-                    Console.WriteLine(Properties.Resources.DatabaseFileAlreadyExists);
-                    PressAnyKey();
-                    return;
+                    File.Delete(databaseFilename);                   
                 }
 
                 DAO.CaseFilesDAO caseFilesDAO = new CaseFilesDAO(databaseFilename);
@@ -41,27 +41,20 @@ namespace TrademarkHistoryAnalysis
                 {
                     Console.WriteLine(Properties.Resources.StartedParsing, path);
                     List<CaseFile> caseFiles = Parser.ParseZippedXML(path);
+
+                    GC.Collect();
                     caseFilesDAO.SaveCaseFileList(caseFiles);
                     Console.WriteLine(Properties.Resources.EndedParsing);
                 }
                 else if (pathType == PathType.Directory)
                 {
                     Console.WriteLine("Started at " + DateTime.Now.ToString("HH:mm:ss"));
-
                     IEnumerable<string> files = Directory.EnumerateFiles(path, "*.zip", SearchOption.TopDirectoryOnly).Where(f => f.EndsWith(".zip", StringComparison.OrdinalIgnoreCase));
 
-                    Console.WriteLine("Found {0} files", files.Count());
-
-                    // process each file                    
-                    foreach (string filename in files)
-                    {
-                        Console.WriteLine("Processing: " + filename);
-                        List<CaseFile> caseFiles = Parser.ParseZippedXML(filename);
-                        caseFilesDAO.SaveCaseFileList(caseFiles);
-                    }
-
+                    Console.WriteLine("Found {0} files", files.Count());                    
+                    Parser.ParseInParallelWriteOnTheFly(files, new Parser.CaseFileWriter(caseFilesDAO.SaveCaseFileList));                    
+                   
                     Console.WriteLine("Finished at " + DateTime.Now.ToString("HH:mm:ss"));
-
                 }
                 else
                 {
@@ -74,7 +67,7 @@ namespace TrademarkHistoryAnalysis
             }
             PressAnyKey();
         }
-
+        
         private static PathType DeterminePathType(string path)
         {
             if (File.Exists(path))

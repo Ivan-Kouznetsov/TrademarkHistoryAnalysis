@@ -25,7 +25,19 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="apc18840407-20181231-01.zip">
+    <None Update="FilesToParse\apc18840407-20181231-01.zip">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="FilesToParse\apc18840407-20181231-01Copy1.zip">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="FilesToParse\apc18840407-20181231-01Copy2.zip">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="FilesToParse\apc18840407-20181231-01Copy3.zip">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="FilesToParse\apc18840407-20181231-01Copy4.zip">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>

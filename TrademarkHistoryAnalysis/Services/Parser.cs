@@ -5,12 +5,32 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Xml.Linq;
+using System.Xml;
 using TrademarkHistoryAnalysis.Models;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Formatters.Binary;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Collections.Concurrent;
+using Newtonsoft.Json;
 
 namespace TrademarkHistoryAnalysis.Services
 {
     public static class Parser
     {
+        const string TempDirectory = "TradeMarkHistoryAnalysisXml";
+        private static string TempDirectoryFullPath { get; set; }
+
+        static Parser() {
+            TempDirectoryFullPath = Path.GetTempPath() + Path.DirectorySeparatorChar + TempDirectory;
+            IEnumerable<string> existingTempFiles = Directory.EnumerateFiles(TempDirectoryFullPath);
+
+            foreach (string f in existingTempFiles)
+            {
+                File.Delete(f);
+            }
+        }
+
         /// <summary>
         /// Returns true if the XML element e is a USPTO case file, in which the attribute "supplemental-register-in" is equal to F. F is short for false.
         /// </summary>
@@ -92,16 +112,50 @@ namespace TrademarkHistoryAnalysis.Services
             return texts;
         }
 
+        private static CaseFile ParseElement(XElement e) {
+            XElement header = e.Element("case-file-header");
+            XElement owner = e.Element("case-file-owners").Element("case-file-owner");
+
+            string state = null;
+            string country = "US";
+
+            if (owner.Element("nationality") != null)
+            {
+                if (owner.Element("nationality").Element("state") != null)
+                {
+                    state = (string)owner.Element("nationality").Element("state");
+                }
+                else
+                {
+                    country = (string)owner.Element("nationality").Element("country");
+                }
+            }
+
+            CaseFile result = new CaseFile((DateTime)GetCaseFileDate(e, "filing-date"),
+                                (int)e.Element("serial-number"),
+                                GetCaseFileDate(e, "registration-date"),
+                                (int?)e.Element("registration-number"),
+                                (string)owner.Element("party-name"),
+                                (int)owner.Element("legal-entity-type-code"),
+                                state,
+                                country,
+                                (string)header.Element("attorney-name"),
+                                (int)header.Element("status-code"),
+                                (string)header.Element("mark-identification"),
+                                     GetClasses(e.Elements("classifications").Elements("classification"),
+                                                GetGoodsAndServices(e.Elements("case-file-statements").Elements("case-file-statement")))
+                                );
+            return result;
+        }
+
         /// <summary>
-        /// Parses a USPTO annual case file collection
+        /// Parses USPTO annual data and outputs CaseFile objects to a stream
         /// </summary>
-        /// <param name="stream">A stream containing a USPTO annual case file collection encoded as XML</param>
-        /// <returns>A list of CaseFile objects</returns>
-        public static List<CaseFile> ParseXML(Stream stream)
-        {
-
-            XElement xElement = XElement.Load(stream);
-
+        /// <param name="xmlData">a stream from which xml data is read</param>
+        /// <param name="output">a stream to which results are written</param>
+        public static void ParseXML(Stream xmlData, Stream output)
+        {   
+            XElement xElement = XElement.Load(xmlData);           
             IEnumerable<XElement> searchResults = from case_file in xElement.Descendants("case-file")
                                                   where IsOnPrincipalRegister(case_file.Element("case-file-header")) &&
                                                        (case_file.Element("case-file-header") != null) &&
@@ -111,47 +165,83 @@ namespace TrademarkHistoryAnalysis.Services
                                                        (case_file.Elements("classifications") != null)
                                                   select case_file;
 
-            List<CaseFile> results = new List<CaseFile>();
-
+            IFormatter formatter = new BinaryFormatter();
             foreach (XElement e in searchResults)
+            {               
+                // save to outout stream                
+                formatter.Serialize(output, ParseElement(e) );
+            }
+        }
+
+
+        private static IEnumerable<XElement> LazyGetXElements(string filename)
+        {
+            XmlReaderSettings settings = new XmlReaderSettings();
+            settings.ConformanceLevel = ConformanceLevel.Auto;
+            settings.IgnoreWhitespace = true;
+            settings.IgnoreComments = true;
+            settings.DtdProcessing = DtdProcessing.Parse;
+            using (XmlReader reader = XmlReader.Create(filename, settings))
             {
-                XElement header = e.Element("case-file-header");
-                XElement owner = e.Element("case-file-owners").Element("case-file-owner");
+                reader.MoveToContent();
 
-                string state = null;
-                string country = "US";
-
-                if (owner.Element("nationality") != null)
+                while (reader.Read())
                 {
-                    if (owner.Element("nationality").Element("state") != null)
+                    while (reader.NodeType == XmlNodeType.Element
+                           && reader.Name.Equals("case-file", StringComparison.InvariantCulture))
                     {
-                        state = (string)owner.Element("nationality").Element("state");
-                    }
-                    else
-                    {
-                        country = (string)owner.Element("nationality").Element("country");
+                        yield return XNode.ReadFrom(reader) as XElement;
                     }
                 }
 
-                results.Add(new CaseFile((DateTime)GetCaseFileDate(e, "filing-date"),
-                            (int)e.Element("serial-number"),
-                            GetCaseFileDate(e, "registration-date"),
-                            (int?)e.Element("registration-number"),
-                            (string)owner.Element("party-name"),
-                            (int)owner.Element("legal-entity-type-code"),
-                            state,
-                            country,
-                            (string)header.Element("attorney-name"),
-                            (int)header.Element("status-code"),
-                            (string)header.Element("mark-identification"),
-                                 GetClasses(e.Elements("classifications").Elements("classification"),
-                                            GetGoodsAndServices(e.Elements("case-file-statements").Elements("case-file-statement")))
-                            ));
+            }
+        }
+
+        public static List<CaseFile> LowMemoryParse(string filename)
+        {
+            List<CaseFile> caseFiles = new List<CaseFile>();
+
+            foreach (XElement e in LazyGetXElements(filename))
+            {
+                if (IsOnPrincipalRegister(e.Element("case-file-header")) &&
+                            (e.Element("case-file-header") != null) &&
+                            (e.Element("case-file-owners") != null) &&
+                            (e.Element("serial-number") != null) &&
+                            (e.Elements("case-file-statements") != null) &&
+                            (e.Elements("classifications") != null))
+                {
+                    caseFiles.Add(ParseElement(e));
+                }
             }
 
-            stream.Dispose();
+            return caseFiles;
+        }
 
-            return results;
+        public static List<CaseFile> LowMemoryParseZippedXML(string filename) {
+            ZipFile.ExtractToDirectory(filename, TempDirectoryFullPath);
+            string newFilepath = TempDirectoryFullPath + Path.DirectorySeparatorChar + Path.GetFileNameWithoutExtension(filename) + ".xml";        
+            List<CaseFile> caseFiles = LowMemoryParse(newFilepath);
+            File.Delete(newFilepath);
+
+            return caseFiles;   
+        }
+
+        /// <summary>
+        /// Parses a zipped USPTO annual case file
+        /// </summary>
+        /// <param name="filename">name of zip file</param>
+        /// <param name="output">a stream to which the output will be written</param>
+        public static void ParseZippedXML(string filename, Stream output)
+        {
+            
+            using (Stream zipFileStream = File.Open(filename, FileMode.Open))
+            {
+                ZipArchive zipArchive = new ZipArchive(zipFileStream, ZipArchiveMode.Read);
+                using (Stream xmlStream = zipArchive.Entries[0].Open())
+                {
+                    ParseXML(xmlStream, output);
+                }                    
+            }            
         }
 
         /// <summary>
@@ -163,12 +253,82 @@ namespace TrademarkHistoryAnalysis.Services
         {
             List<CaseFile> caseFiles = new List<CaseFile>();
 
-            using (Stream zipFileStream = File.Open(filename, FileMode.Open))
-            {
-                ZipArchive zipArchive = new ZipArchive(zipFileStream, ZipArchiveMode.Read);
-                caseFiles = ParseXML(zipArchive.Entries[0].Open());
+            using (MemoryStream memoryStream = new MemoryStream()) {
+                ParseZippedXML(filename, memoryStream);
+
+                IFormatter formatter = new BinaryFormatter();
+
+                memoryStream.Position = 0;
+                while (memoryStream.Position < memoryStream.Length) {
+                    caseFiles.Add((CaseFile)formatter.Deserialize(memoryStream));
+                }
+
+                return caseFiles;
             }
-            return caseFiles;
         }
+        /// <summary>
+        /// Parses USPTO annual data in zipped XML files using parallel processing. The method uses temporary files. 
+        /// </summary>
+        /// <param name="filenames">a list of USPTO annual data in zipped XML files</param>
+        /// <returns>A list of CaseFile objects</returns>
+        public static List<CaseFile> ParseInParallel(IEnumerable<string> filenames)
+        {
+            ConcurrentBag<string> concurrentFilenames = new ConcurrentBag<string>(filenames);
+            ConcurrentBag<CaseFile> concurrentCaseFiles = new ConcurrentBag<CaseFile>();
+           
+
+            Parallel.ForEach(concurrentFilenames,
+                new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount },
+                filename =>
+                {
+                    concurrentCaseFiles.AddRange(LowMemoryParseZippedXML(filename));
+                }
+                );
+      
+            return new List<CaseFile>(concurrentCaseFiles);
+        }
+
+        public delegate void CaseFileWriter(List<CaseFile> caseFiles);
+
+        public static void ParseInParallelWriteOnTheFly(IEnumerable<string> filenames,
+                                                        CaseFileWriter writer,
+                                                        bool writeSynchronously = true
+                                                        )
+        {
+            ConcurrentBag<string> concurrentFilenames = new ConcurrentBag<string>(filenames);
+
+            object writeLock = new object();
+
+            Parallel.ForEach(concurrentFilenames,
+                new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount },
+                filename =>
+                {
+                    List<CaseFile> caseFiles = LowMemoryParseZippedXML(filename);
+
+                    if (writeSynchronously)
+                    {
+                        lock (writeLock)
+                        {
+                            writer(caseFiles);
+                        }
+                    }
+                    else
+                    {
+                        writer(caseFiles);
+                    }
+                }
+                );
+        }
+
+
+        #region Helpers
+        public static void AddRange<T>(this ConcurrentBag<T> @this, IEnumerable<T> toAdd)
+        {
+            foreach (var element in toAdd)
+            {
+                @this.Add(element);
+            }
+        }
+        #endregion
     }
 }

@@ -10,6 +10,21 @@ namespace TrademarkHistoryAnalysis.DAO
     {
         private readonly string connectionString = "Data Source=";
 
+        const string SelectCaseFiles =
+@"SELECT FilingDate, SerialNumber, RegistrationDate,
+RegistrationNumber, Owner, OwnerTypeId,
+State, Country, Attorney, StatusCode, MarkLiteralElements, 
+group_concat(CaseFileClass.InternationalCode,',') as InternationalCodes,
+group_concat(CaseFileClass.GoodsAndServices ,'$') as GoodsAndServices from CaseFiles 
+join CaseFileClass on CaseFileClass.CaseFileId = CaseFiles.CaseFileId GROUP BY CaseFiles.CaseFileId";
+        const string SelectCaseFilesWithNoClasses =
+@"SELECT FilingDate, SerialNumber, RegistrationDate,
+RegistrationNumber, Owner, OwnerTypeId,
+State, Country, Attorney, StatusCode, MarkLiteralElements, 
+null as InternationalCodes,
+null as GoodsAndServices from CaseFiles 
+WHERE CaseFileId not in (select CaseFileId from CaseFileClass)";
+
         public CaseFilesDAO(string filename)
         {
             connectionString = connectionString + filename;
@@ -109,51 +124,70 @@ namespace TrademarkHistoryAnalysis.DAO
 
         public List<CaseFile> GetAllCaseFiles()
         {
-            const string SelectCaseFiles = "SELECT FilingDate, SerialNumber, RegistrationDate,RegistrationNumber, Owner, OwnerTypeId, State, Country, Attorney, StatusCode, MarkLiteralElements, group_concat(CaseFileClass.InternationalCode,',') as InternationalCodes, group_concat(CaseFileClass.GoodsAndServices ,'$') as GoodsAndServices from CaseFiles join CaseFileClass on CaseFileClass.CaseFileId = CaseFiles.CaseFileId GROUP BY CaseFiles.CaseFileId";
-
             List<CaseFile> caseFiles = new List<CaseFile>();
 
             using (SqliteConnection sqliteConnection = new SqliteConnection(connectionString))
             {
                 sqliteConnection.Open();
-                using (SqliteCommand sqliteCommand = new SqliteCommand(SelectCaseFiles, sqliteConnection))
-                {
-                    SqliteDataReader reader = sqliteCommand.ExecuteReader();
-
-                    while (reader.Read())
+                string[] queries = new string[] { SelectCaseFiles, SelectCaseFilesWithNoClasses };
+                foreach (string q in queries) {
+                    using (SqliteCommand sqliteCommand = new SqliteCommand(q, sqliteConnection))
                     {
-                        caseFiles.Add(new CaseFile(DateTime.Parse((string)reader["FilingDate"]),
-                                                  (int)(Int64)reader["SerialNumber"],
-                                                  NullableDatabaseStringToNullableDateTime(reader["RegistrationDate"]),
-                                                  (int?)(Int64?)DatabaseNullableToNullable(reader["RegistrationNumber"]),
-                                                  (string)reader["Owner"],
-                                                  (int)(Int64)reader["OwnerTypeId"],
-                                                  (string)DatabaseNullableToNullable(reader["State"]),
-                                                  (string)reader["Country"],
-                                                  (string)DatabaseNullableToNullable(reader["Attorney"]),
-                                                  (int)(Int64)reader["StatusCode"],
-                                                  (string)DatabaseNullableToNullable(reader["MarkLiteralElements"]),
-                                                  ClassificationsFromDatabaseData((string)reader["InternationalCodes"], ',', (string)reader["GoodsAndServices"], '$')
-                                                  ));
-                    }
+                        SqliteDataReader reader = sqliteCommand.ExecuteReader();
 
+                        while (reader.Read())
+                        {
+                            DateTime filingDate = DateTime.Parse((string)reader["FilingDate"]);
+                            int serialNumber = (int)(Int64)reader["SerialNumber"];
+                            DateTime? registrationDate = NullableDatabaseStringToNullableDateTime(reader["RegistrationDate"]);
+                            int? registrationNumber = (int?)(Int64?)DatabaseNullableToNullable(reader["RegistrationNumber"]);
+                            string owner = (string)reader["Owner"];
+                            int ownerTypeId = (int)(Int64)reader["OwnerTypeId"];
+                            string state = (string)DatabaseNullableToNullable(reader["State"]);
+                            string country = (string)reader["Country"];
+                            string attorney = (string)DatabaseNullableToNullable(reader["Attorney"]);
+                            int statusCode = (int)(Int64)reader["StatusCode"];
+                            string markLiteralElements = (string)DatabaseNullableToNullable(reader["MarkLiteralElements"]);
+                            List<Classification> classifications = ClassificationsFromDatabaseData(reader["InternationalCodes"],
+                                                                                      ',',
+                                                                                      reader["GoodsAndServices"],
+                                                                                      '$');
+
+                            caseFiles.Add(new CaseFile(filingDate, serialNumber, registrationDate, registrationNumber, owner, ownerTypeId,
+                                                       state, country, attorney, statusCode, markLiteralElements, classifications));
+                        }
+                    }
                 }
             }
+
             return caseFiles;
         }
 
-        private static List<Classification> ClassificationsFromDatabaseData(string internationalCodes, char internationalCodesSeparator, string goodsAndServices, char goodsAndServicesSeparator)
+        private static List<Classification> ClassificationsFromDatabaseData(object internationalCodes, char internationalCodesSeparator, object goodsAndServices, char goodsAndServicesSeparator)
         {
             List<Classification> result = new List<Classification>();
-            string[] codes = internationalCodes.Split(internationalCodesSeparator);
-            string[] goods = goodsAndServices.Split(goodsAndServicesSeparator);
 
+            if (goodsAndServices == DBNull.Value) return result;
+
+            string[] goods = ((string)goodsAndServices).Split(goodsAndServicesSeparator);
+            int goodsCount = goods.Length;
+            string[] codes = new string[goodsCount];
+
+            if (internationalCodes != DBNull.Value)
+            {
+                codes = ((string)internationalCodes).Split(internationalCodesSeparator);
+            }
+          
             for (int i = 0; i < codes.Length; i++)
             {
-                result.Add(new Classification(int.Parse(codes[i]), goods.ElementAtOrDefault(i)));
-            }
+                bool parsed = int.TryParse(codes[i], out int thisCode);
+                result.Add(new Classification( parsed ? (int?)thisCode : null, goods.ElementAtOrDefault(i)));
+            }      
+
             return result;
         }
+
+
 
         private static DateTime? NullableDatabaseStringToNullableDateTime(object date)
         {

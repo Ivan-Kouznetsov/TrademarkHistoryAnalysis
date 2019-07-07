@@ -3,6 +3,7 @@ using System.Collections.Generic;
 
 namespace TrademarkHistoryAnalysis.Models
 {
+    [Serializable]
     public class CaseFile
     {
         public DateTime FilingDate { get; private set; }
