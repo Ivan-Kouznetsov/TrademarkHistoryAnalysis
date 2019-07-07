@@ -1,6 +1,6 @@
 # Why?
 The USPTO publishes historical trademark data on their website: [https://developer.uspto.gov/product/trademark-annual-xml-applications#product-files](https://developer.uspto.gov/product/trademark-annual-xml-applications#product-files)
-This data is made available as XML, with numerous fields some of which are inapplicable or of low importance such as the date the file was compiled. If you want to analyze this data you will first need to extract salient information and to arrange it in a matter conducive to analysis. That is what this application does.
+This data is made available as XML, with numerous fields some of which are inapplicable or of low importance such as the date the file was compiled. If you want to analyze this data you will first need to extract salient information and to arrange it in a manner conducive to analysis. That is what this application does.
 
 # What?
 This application takes in a directory of one or more zipped XML files containing annual trademark data from the USPTO and converts the data contained therein into an SQLite database which you can then query using SQL by using the SQLite command line tool or 3rd party GUI tools.
