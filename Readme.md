@@ -21,23 +21,19 @@ CaseFiles Table:
  - Attorney
  - StatusCode
  - MarkLiteralElements
- - GoodsAndServices
-
-	
+ 	
 CaseFileClass Table:
 
  - CaseFileClassId
  - CaseFileId
  - ClassId
-
+ - GoodsAndServices
 # How?
 
 Usage: TrademarkHistoryAnalysis [filename or directory] [name of sqlite db that porgram will create] 
 
 ## Technical Requirements:
-In order to process the data efficiently and not be delayed by I/O, the XML data is processed in memory, which means you will want to run this program on a modern computer with a 64-bit processor and operating system and more than 5 GB of RAM. Because of this streamlined approach, the application is CPU bound, meaning that the faster the processor is the faster this program will run, as a consequence it will also use a lot of your processor's capacity while it runs.
-
-On a modern PC it may process all currently available historical trademark data from the USPTO in less than half an hour.
+Works best on a multicore computer, requires approximately 5 GB of temporary storage.
 
 # Original XML Data
 The original data looks like this. It gets converted into tables as described above.

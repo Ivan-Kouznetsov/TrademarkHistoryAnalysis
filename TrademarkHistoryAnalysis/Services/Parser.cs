@@ -46,7 +46,7 @@ namespace TrademarkHistoryAnalysis.Services
         /// Attempts to parse a date from an XML element's child element 
         /// </summary>
         /// <param name="element">XElement representing a case file</param>
-        /// <param name="datename">Name of child element containing a date string</param>
+        /// <param name="datename">name of child element containing a date string</param>
         /// <returns>A Nullable DateTime</returns>
         private static DateTime? GetCaseFileDate(XElement element, string datename)
         {
@@ -66,7 +66,7 @@ namespace TrademarkHistoryAnalysis.Services
         /// Compiles a list of classifications which includes international codes and identifications of goods and services
         /// </summary>
         /// <param name="classifications">XML elements the child elemnts of which are classification nodes </param>
-        /// <param name="GoodsAndServices">A list of strings that match the classification nodes</param>
+        /// <param name="GoodsAndServices">a list of strings that match the classification nodes</param>
         /// <returns>A list of Classifications</returns>
         private static List<Classification> GetClasses(IEnumerable<XElement> classifications, List<string> GoodsAndServices)
         {
@@ -95,7 +95,7 @@ namespace TrademarkHistoryAnalysis.Services
         /// <summary>
         /// Parses goods and services text elements and concatanates them together into a semicolon separated string
         /// </summary>
-        /// <param name="caseFileStatements">An IEnumerable XElement containing "case-file-statements" child elements</param>
+        /// <param name="caseFileStatements">an IEnumerable XElement containing "case-file-statements" child elements</param>
         /// <returns></returns>
         private static List<string> GetGoodsAndServices(IEnumerable<XElement> caseFileStatements)
         {
@@ -111,7 +111,11 @@ namespace TrademarkHistoryAnalysis.Services
 
             return texts;
         }
-
+        /// <summary>
+        /// Parses an individual XElement containing a case file
+        /// </summary>
+        /// <param name="e">an XElement from a USPTO annual archive XML file</param>
+        /// <returns>A CaseFile</returns>
         private static CaseFile ParseElement(XElement e) {
             XElement header = e.Element("case-file-header");
             XElement owner = e.Element("case-file-owners").Element("case-file-owner");
@@ -172,8 +176,7 @@ namespace TrademarkHistoryAnalysis.Services
                 formatter.Serialize(output, ParseElement(e) );
             }
         }
-
-
+        
         private static IEnumerable<XElement> LazyGetXElements(string filename)
         {
             XmlReaderSettings settings = new XmlReaderSettings();
@@ -196,7 +199,11 @@ namespace TrademarkHistoryAnalysis.Services
 
             }
         }
-
+        /// <summary>
+        /// Parses an XML USPTO annual archive file without loading the whole file into memory
+        /// </summary>
+        /// <param name="filename">path of the file</param>
+        /// <returns>List of CaseFiles</returns>
         public static List<CaseFile> LowMemoryParse(string filename)
         {
             List<CaseFile> caseFiles = new List<CaseFile>();
@@ -216,7 +223,11 @@ namespace TrademarkHistoryAnalysis.Services
 
             return caseFiles;
         }
-
+        /// <summary>
+        /// Unzips and parses an XML USPTO annual archive file without loading the whole file into memory
+        /// </summary>
+        /// <param name="filename">path of the file</param>
+        /// <returns>List of CaseFiles</returns>
         public static List<CaseFile> LowMemoryParseZippedXML(string filename) {
             ZipFile.ExtractToDirectory(filename, TempDirectoryFullPath);
             string newFilepath = TempDirectoryFullPath + Path.DirectorySeparatorChar + Path.GetFileNameWithoutExtension(filename) + ".xml";        
@@ -227,7 +238,7 @@ namespace TrademarkHistoryAnalysis.Services
         }
 
         /// <summary>
-        /// Parses a zipped USPTO annual case file
+        /// Parses a zipped USPTO annual archive file
         /// </summary>
         /// <param name="filename">name of zip file</param>
         /// <param name="output">a stream to which the output will be written</param>
@@ -247,7 +258,7 @@ namespace TrademarkHistoryAnalysis.Services
         /// <summary>
         /// Parses a USPTO annual case file collection
         /// </summary>
-        /// <param name="filename">Filename of a zip file containing a single XML file containing a USPTO annual case file collection</param>
+        /// <param name="filename">filename of a zip file containing a single XML file containing a USPTO annual case file collection</param>
         /// <returns>A list of CaseFile objects</returns>
         public static List<CaseFile> ParseZippedXML(string filename)
         {
@@ -289,7 +300,13 @@ namespace TrademarkHistoryAnalysis.Services
         }
 
         public delegate void CaseFileWriter(List<CaseFile> caseFiles);
-
+        /// <summary>
+        /// Takes a list of zipped USPTO annual archive file locations and parses them in parallel
+        /// while sending batches of completed results to a CaseFileWriter
+        /// </summary>
+        /// <param name="filenames">zipped XML file locations</param>
+        /// <param name="writer">a deligate pointing to a method that takes a List of CaseFile objects and saves them somewhere</param>
+        /// <param name="writeSynchronously">if true processes will wait and call the CaseFileWriter one at a time, if false the CaseFileWriter will be called as soon as a batch of results is ready</param>
         public static void ParseInParallelWriteOnTheFly(IEnumerable<string> filenames,
                                                         CaseFileWriter writer,
                                                         bool writeSynchronously = true
@@ -319,8 +336,7 @@ namespace TrademarkHistoryAnalysis.Services
                 }
                 );
         }
-
-
+        
         #region Helpers
         public static void AddRange<T>(this ConcurrentBag<T> @this, IEnumerable<T> toAdd)
         {

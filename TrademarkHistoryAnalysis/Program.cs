@@ -5,8 +5,6 @@ using System.Linq;
 using TrademarkHistoryAnalysis.DAO;
 using TrademarkHistoryAnalysis.Models;
 using TrademarkHistoryAnalysis.Services;
-using System.Threading.Tasks;
-using Newtonsoft.Json;
 
 namespace TrademarkHistoryAnalysis
 {
@@ -53,7 +51,7 @@ namespace TrademarkHistoryAnalysis
 
                     Console.WriteLine("Found {0} files", files.Count());                    
                     Parser.ParseInParallelWriteOnTheFly(files, new Parser.CaseFileWriter(caseFilesDAO.SaveCaseFileList));                    
-                   
+                    
                     Console.WriteLine("Finished at " + DateTime.Now.ToString("HH:mm:ss"));
                 }
                 else

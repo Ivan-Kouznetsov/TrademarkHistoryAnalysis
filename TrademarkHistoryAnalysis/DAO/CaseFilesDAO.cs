@@ -33,7 +33,6 @@ WHERE CaseFileId not in (select CaseFileId from CaseFileClass)";
 
         private bool CreateDataBase()
         {
-
             const string CreateCaseFiles = "CREATE TABLE CaseFiles (CaseFileId INTEGER PRIMARY KEY, FilingDate DATE, SerialNumber INTEGER, RegistrationDate DATE, RegistrationNumber INTEGER, Owner TEXT, OwnerTypeId INTEGER, State TEXT, Country TEXT, Attorney TEXT, StatusCode INTEGER, MarkLiteralElements TEXT);";
             const string CreateCaseFileClass = "CREATE TABLE CaseFileClass (CaseFileClassId INTEGER PRIMARY KEY, CaseFileId INTEGER, InternationalCode INTEGER, GoodsAndServices TEXT) ;";
             try
@@ -57,23 +56,35 @@ WHERE CaseFileId not in (select CaseFileId from CaseFileClass)";
 
             return true;
         }
-
+      
         public void SaveCaseFileList(List<CaseFile> caseFiles)
         {
+            const string Pragmas = "PRAGMA journal_mode = OFF;";
             const string InsertCaseFile = "INSERT INTO CaseFiles (FilingDate, SerialNumber, RegistrationDate, RegistrationNumber, Owner, OwnerTypeId, State, Country, Attorney, StatusCode, MarkLiteralElements) VALUES (@FilingDate, @SerialNumber, @RegistrationDate, @RegistrationNumber, @Owner, @OwnerTypeId, @State, @Country, @Attorney, @StatusCode, @MarkLiteralElements)";
             const string SelectLastInsertId = "SELECT last_insert_rowid() as 'ID';";
             const string InsertClasses = "INSERT INTO CaseFileClass (CaseFileId, InternationalCode, GoodsAndServices) VALUES (@CaseFileId, @InternationalCode, @GoodsAndServices);";
 
+            bool isFirstInsert = true;
+
             using (SqliteConnection sqliteConnection = new SqliteConnection(connectionString))
             {
                 sqliteConnection.Open();
-                using (SqliteCommand sqliteCommand = new SqliteCommand(InsertCaseFile, sqliteConnection))
+                using (SqliteCommand sqliteCommand = new SqliteCommand(string.Empty, sqliteConnection))
                 {
                     using (sqliteCommand.Transaction = sqliteConnection.BeginTransaction())
                     {
                         foreach (CaseFile file in caseFiles)
                         {
-                            sqliteCommand.CommandText = InsertCaseFile;
+                            if (isFirstInsert)
+                            {
+                                isFirstInsert = false;
+                                sqliteCommand.CommandText = Pragmas + InsertCaseFile;
+                            }
+                            else
+                            {
+                                sqliteCommand.CommandText = InsertCaseFile;
+                            }
+                            
                             sqliteCommand.Parameters.Clear();
 
                             sqliteCommand.Parameters.AddWithValue("@FilingDate", file.FilingDate);
@@ -186,9 +197,7 @@ WHERE CaseFileId not in (select CaseFileId from CaseFileClass)";
 
             return result;
         }
-
-
-
+               
         private static DateTime? NullableDatabaseStringToNullableDateTime(object date)
         {
             if (DBNull.Value == date)

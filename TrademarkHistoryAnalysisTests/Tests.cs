@@ -52,7 +52,7 @@ namespace TrademarkHistoryAnalysisTests
             Parser.ParseInParallelWriteOnTheFly(ZippedXMLFiles, new Parser.CaseFileWriter(caseFilesDAO.SaveCaseFileList));
 
             List<CaseFile> caseFiles = caseFilesDAO.GetAllCaseFiles();
-            //File.Delete(TestDbName);
+            File.Delete(TestDbName);
 
             Assert.AreEqual(ZippedXMLFileCases * fileCopyCount, caseFiles.Count);
         }
