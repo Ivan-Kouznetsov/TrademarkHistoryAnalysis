@@ -5,29 +5,16 @@ This data is made available as XML, with numerous fields some of which are inapp
 # What?
 This application takes in a directory of one or more zipped XML files containing annual trademark data from the USPTO and converts the data contained therein into an SQLite database which you can then query using SQL by using the SQLite command line tool or 3rd party GUI tools.
 
-The resulting tables have the following fields:
+The tables look like this:
 
-CaseFiles Table:
+### Case Files (Applications and Registrations)
 
- - CaseFileId
- - FilingDate
- - SerialNumber
- - RegistrationDate
- - RegistrationNumber
- - Owner
- - OwnerTypeId
- - State
- - Country
- - Attorney
- - StatusCode
- - MarkLiteralElements
-     
-CaseFileClass Table:
+![](http://dailymark.legal/images/case_files.png)
 
- - CaseFileClassId
- - CaseFileId
- - ClassId
- - GoodsAndServices
+### Classifications and Goods and Services
+
+![](http://dailymark.legal/images/classes_table_truncated.png)
+
 # How?
 
 Usage: TrademarkHistoryAnalysis [filename or directory] [name of SQLite DB that program will create] 
