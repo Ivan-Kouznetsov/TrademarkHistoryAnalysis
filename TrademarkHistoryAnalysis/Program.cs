@@ -19,7 +19,7 @@ namespace TrademarkHistoryAnalysis
     {
         static void Main(string[] args)
         {         
-            Console.WriteLine(Properties.Resources.Copyright);
+            Console.WriteLine(Properties.Resources.Copyright.Replace(@"\n",Environment.NewLine));
 
             if (args.Length == 2)
             {
@@ -49,10 +49,22 @@ namespace TrademarkHistoryAnalysis
                     Console.WriteLine("Started at " + DateTime.Now.ToString("HH:mm:ss"));
                     IEnumerable<string> files = Directory.EnumerateFiles(path, "*.zip", SearchOption.TopDirectoryOnly).Where(f => f.EndsWith(".zip", StringComparison.OrdinalIgnoreCase));
 
-                    Console.WriteLine("Found {0} files", files.Count());                    
-                    Parser.ParseInParallelWriteOnTheFly(files, new Parser.CaseFileWriter(caseFilesDAO.SaveCaseFileList));                    
-                    
-                    Console.WriteLine("Finished at " + DateTime.Now.ToString("HH:mm:ss"));
+                    Console.WriteLine("Found {0} files", files.Count());
+
+                    try
+                    {
+                        Parser.ParseInParallelWriteOnTheFly(files, new Parser.CaseFileWriter(caseFilesDAO.SaveCaseFileList));
+                        Console.WriteLine("Finished at " + DateTime.Now.ToString("HH:mm:ss"));
+                    }
+                    catch (AggregateException /*aggregateException*/)
+                    {
+                        Console.WriteLine(Properties.Resources.IOErrorMessage);
+                    }
+                    catch (Exception otherException)
+                    {
+                        Console.WriteLine(Properties.Resources.GenericErrorMessage + otherException.Message);
+                    }
+                   
                 }
                 else
                 {

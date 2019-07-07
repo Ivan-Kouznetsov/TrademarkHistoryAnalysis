@@ -70,7 +70,7 @@ namespace TrademarkHistoryAnalysis.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to TrademarkHistoryAnalysis (C) 2019 Ivan Kouznetsov. Free software distributed under AGPL..
+        ///   Looks up a localized string similar to TrademarkHistoryAnalysis (C) 2019 Ivan Kouznetsov.\nFree software distributed under AGPL..
         /// </summary>
         internal static string Copyright {
             get {
@@ -106,11 +106,29 @@ namespace TrademarkHistoryAnalysis.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Error:.
+        /// </summary>
+        internal static string GenericErrorMessage {
+            get {
+                return ResourceManager.GetString("GenericErrorMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to TrademarkHistoryAnalysis\nUsage: TrademarkHistoryAnalysis[.exe] [Directory of USPTO annual case files as zip files] [name of sqlite file to create] \n Example: TrademarkHistoryAnalysis &quot;D:\Downloads\USPTOzipfiles&quot; mynewdatabase.db.
         /// </summary>
         internal static string Instructions {
             get {
                 return ResourceManager.GetString("Instructions", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Error: Ran out of temporary storage space. Please delete temporary and unused files on the main drive..
+        /// </summary>
+        internal static string IOErrorMessage {
+            get {
+                return ResourceManager.GetString("IOErrorMessage", resourceCulture);
             }
         }
         

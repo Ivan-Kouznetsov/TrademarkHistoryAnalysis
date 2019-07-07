@@ -121,7 +121,8 @@
     <value>Extracted {0} case files</value>
   </data>
   <data name="Copyright" xml:space="preserve">
-    <value>TrademarkHistoryAnalysis (C) 2019 Ivan Kouznetsov. Free software distributed under AGPL.</value>
+    <value>TrademarkHistoryAnalysis (C) 2019 Ivan Kouznetsov.\nFree software distributed under AGPL.</value>
+    <comment>\n replaced with new line</comment>
   </data>
   <data name="DatabaseFileAlreadyExists" xml:space="preserve">
     <value>Database file already exists. Specify a new file name.</value>
@@ -132,9 +133,15 @@
   <data name="FileNotFound" xml:space="preserve">
     <value>File Not Found</value>
   </data>
+  <data name="GenericErrorMessage" xml:space="preserve">
+    <value>Error:</value>
+  </data>
   <data name="Instructions" xml:space="preserve">
     <value>TrademarkHistoryAnalysis\nUsage: TrademarkHistoryAnalysis[.exe] [Directory of USPTO annual case files as zip files] [name of sqlite file to create] \n Example: TrademarkHistoryAnalysis "D:\Downloads\USPTOzipfiles" mynewdatabase.db</value>
     <comment>\n replaced with new line</comment>
+  </data>
+  <data name="IOErrorMessage" xml:space="preserve">
+    <value>Error: Ran out of temporary storage space. Please delete temporary and unused files on the main drive.</value>
   </data>
   <data name="NoFile" xml:space="preserve">
     <value>Specify a file</value>
